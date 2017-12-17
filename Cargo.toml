@@ -1,0 +1,7 @@
+[package]
+name = "danake-rs"
+version = "0.1.0"
+authors = ["Neal Lester <neal@3dsafety.com>"]
+
+[dependencies]
+uuid = { version = "0.4", features = ["v4"] }
