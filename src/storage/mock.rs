@@ -49,11 +49,11 @@ impl<> Storage {
         }
     }
 
-    fn table_count (&self) -> usize {
+    pub fn table_count (&self) -> usize {
         self.entities.len()
     }
 
-    fn count (&self, name: &str) -> usize {
+    pub fn count (&self, name: &str) -> usize {
         match self.entities.get (name) {
             Some (mm) => {
                 mm.len()
