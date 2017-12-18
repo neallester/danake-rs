@@ -15,7 +15,7 @@ impl<> Storage {
         }
     }
 
-    pub fn set(&mut self, name: &str, uuid: &Uuid, json: &str) {
+    pub fn set(&mut self, name: &str, uuid: &Uuid, json: String) {
         let needs_insert = match self.entities.get_mut (name) {
             Some(mm) => {
                 mm.insert(uuid.clone(), json.to_string());
@@ -27,7 +27,7 @@ impl<> Storage {
         };
         if needs_insert {
             let mut new: HashMap<Uuid, String> = HashMap::new();
-            new.insert(uuid.clone(), json.to_string());
+            new.insert(uuid.clone(), json);
             self.entities.insert (name.to_string(), new);
         }
     }
@@ -89,15 +89,15 @@ mod tests {
         assert_eq!(None, storage.get (&name0, &uuid0));
         assert_eq!(0, storage.count(&name0));
         assert_eq!(0, storage.table_count());
-        storage.set (&name0, &uuid0, &json0);
+        storage.set (&name0, &uuid0, json0.clone());
         assert_eq!(json0, storage.get (&name0, &uuid0).unwrap());
         assert_eq! (1, storage.count (&name0));
         assert_eq!(None, storage.get (&name1, &uuid1));
         assert_eq!(0, storage.count(&name1));
         assert_eq!(1, storage.table_count());
-        storage.set (&name0, &uuid1, &json1);
-        storage.set (&name1, &uuid2, &json2);
-        storage.set (&name1, &uuid3, &json3);
+        storage.set (&name0, &uuid1, json1.clone());
+        storage.set (&name1, &uuid2, json2.clone());
+        storage.set (&name1, &uuid3, json3.clone());
         assert_eq!(json0, storage.get (&name0, &uuid0).unwrap());
         assert_eq!(json1, storage.get (&name0, &uuid1).unwrap());
         assert_eq! (2, storage.count (&name0));
@@ -105,8 +105,8 @@ mod tests {
         assert_eq!(json3, storage.get (&name1, &uuid3).unwrap());
         assert_eq!(2, storage.count(&name1));
         assert_eq!(2, storage.table_count());
-        storage.set (&name0, &uuid1, &json4);
-        storage.set (&name1, &uuid3, &json5);
+        storage.set (&name0, &uuid1, json4.clone());
+        storage.set (&name1, &uuid3, json5.clone());
         assert_eq!(json0, storage.get (&name0, &uuid0).unwrap());
         assert_eq!(json4, storage.get (&name0, &uuid1).unwrap());
         assert_eq! (2, storage.count (&name0));
