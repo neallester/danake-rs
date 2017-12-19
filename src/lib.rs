@@ -13,9 +13,9 @@ struct Batch {
 
 struct Token {}
 
-// type EntityStruct = Clone + Eq + Serialize + DeserializeOwned;
+// type EntityStructImp = Clone + Eq + Serialize + DeserializeOwned;
 
-//pub trait EntityStruct: Clone + Eq + Serialize + DeserializeOwned {}
+//pub trait EntityStructImp: Clone + Eq + Serialize + DeserializeOwned {}
 //
 //pub struct Entity<'a, E> where E: Sized + Clone + Eq + Serialize + DeserializeOwned {
 //
@@ -28,31 +28,31 @@ struct Token {}
 //}
 
 
-pub trait EntityStruct: {
+pub trait EntityStructImp {
 
     fn clone_entity (&self) -> Self where Self: Sized;
 
 }
 
-impl<T: Clone> EntityStruct for T {
+impl<T: Clone> EntityStructImp for T {
 
-    fn clone_entity (&self) -> Self {
+    fn clone_entity (&self) -> T {
         return self.clone()
     }
 }
 
-pub trait ES: EntityStruct {}
+pub trait EntityStruct: EntityStructImp {}
 
 #[derive(Clone)]
 pub struct MyStruct {}
 
-impl ES for MyStruct {}
+impl EntityStruct for MyStruct {}
 
 
 
-pub struct Entity<'a, E> where E: EntityStruct {
+pub struct Entity<'a, E: ?Sized> where E: EntityStruct {
 
-    item: E,
+    item: Box<E>,
     id: Uuid,
     base_version: u32,
     toekn: Option<&'a Token>,
@@ -67,7 +67,6 @@ mod tests {
 
     use Entity;
     use EntityStruct;
-    use ES;
     use std::sync::mpsc::channel;
     use std::sync::mpsc::Sender;
     use std::sync::mpsc::Receiver;
@@ -78,7 +77,8 @@ mod tests {
 
     #[test]
     fn it_works() {
-//        let (tx, rx): (Sender<Box<Entity<ES>>>, Receiver<Box<Entity<ES>>>) = channel();
+        let (tx, rx): (Sender<Entity<EntityStruct>>, Receiver<Entity<EntityStruct>>) = channel();
+        let v: Vec<Box<Entity<EntityStruct>>> =  Vec::new();
 
 
 
