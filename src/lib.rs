@@ -55,8 +55,7 @@ pub trait EntityStruct: EntityStructClone + EntityStructEq {}
 //|   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ conflicting implementation for `MyStruct`
 
 
-
-pub struct Entity<'a, E: ?Sized> where E: EntityStructClone {
+pub struct Entity<'a, E: ?Sized> where E: EntityStruct {
 
     item: Box<E>,
     id: Uuid,
