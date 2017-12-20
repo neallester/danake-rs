@@ -1,11 +1,15 @@
 mod storage;
 
+#[macro_use]
+extern crate serde_derive;
 extern crate serde;
+extern crate serde_json;
 extern crate uuid;
+extern crate erased_serde;
 use self::uuid::Uuid;
-use self::serde::{Serialize, Serializer};
-use self::serde::de::DeserializeOwned;
+use erased_serde::{Serialize, Serializer};
 use std::sync::mpsc::Sender;
+use std::result::Result;
 
 struct Batch {
 
@@ -24,11 +28,12 @@ pub trait EntityStructEq {
     fn entity_eq (&self, other: &Self) -> bool where Self: Sized;
 }
 
-//pub trait EntityStructSerialize {
-//    fn serialize<S>(&self, serializer: Box<S>) -> Result<S::Ok, S::Error>
-//        where
-//            S: Serializer;
-//}
+pub trait EntityStructSerialize {
+
+    fn entity_serialize<'a> (&self, mut serializer: Box<Serializer + 'a>) -> Result<(), erased_serde::Error>;
+
+    fn to_json(&self) -> Result<std::string::String, serde_json::Error>;
+}
 
 impl<C: Clone> EntityStructClone for C {
 
@@ -44,14 +49,23 @@ impl<E: Eq> EntityStructEq for E {
 
 }
 
-//impl<S: Serialize> EntityStructSerialize for S {
-//    fn serialize<S>(&self, serializer: Box<S>) -> Result<S::Ok, S::Error> {
-//        return self.serialize(serializer);
-//    }
-//
-//}
+impl<S: serde::Serialize> EntityStructSerialize for S
+{
+    fn entity_serialize<'a> (&self, mut serializer: Box<Serializer + 'a>) -> Result<(), erased_serde::Error> {
+        let result = self.erased_serialize(&mut *serializer);
+        match result {
+            Ok(_) => Ok(()),
+            Err(err) => Err (err),
+        }
+    }
 
-pub trait EntityStruct: EntityStructClone + EntityStructEq {}
+    fn to_json(&self) -> Result<std::string::String, serde_json::Error> {
+        serde_json::to_string (self)
+    }
+
+}
+
+pub trait EntityStruct: EntityStructClone + EntityStructEq + EntityStructSerialize {}
 // This indirection ^ prevents an implementation conflict for descendants
 //                  |
 //error[E0119]: conflicting implementations of trait `EntityStruct` for type `MyStruct`:
@@ -84,23 +98,27 @@ pub struct Entity<'a, E: ?Sized> where E: EntityStruct {
 #[cfg(test)]
 mod tests {
 
+    extern crate serde_json;
+
     use Entity;
     use EntityStruct;
     use EntityStructClone;
     use EntityStructEq;
+    use EntityStructSerialize;
     use std::sync::mpsc::channel;
     use std::sync::mpsc::Sender;
     use std::sync::mpsc::Receiver;
-    use serde::Serialize;
-    use serde::de::DeserializeOwned;
+    use erased_serde::{Serializer};
+    use std::rc::Rc;
 
-    #[derive(Clone, PartialEq, Eq, Debug)]
+
+    #[derive(Clone, PartialEq, Eq, Debug, Serialize)]
     struct TestStruct {
         a: i32,
         v: Vec<i32>,
     }
 
-    impl EntityStruct for TestStruct {   }
+    impl <'a> EntityStruct for TestStruct {   }
 
 
 
@@ -113,7 +131,7 @@ mod tests {
     }
 
     #[test]
-    fn clone_eq_tests() {
+    fn clone_entity_struct () {
         let s1 = TestStruct {
             a: 100,
             v: vec![200, 300],
@@ -141,5 +159,13 @@ mod tests {
         };
         assert_ne! (s1, s4);
         assert! (!s1.entity_eq (&s4));
+
+        assert_eq! ("{\"a\":100,\"v\":[200,300]}", s1.to_json().unwrap());
+
+        let bytes = Vec::new();
+        let mut json = Rc::new (self::serde_json::Serializer::new(bytes));
+        let json_ref = Rc::get_mut(&mut json).unwrap();
+        let erased: Box<Serializer> = Box::new(Serializer::erase(json_ref));
+        let _ = s1.entity_serialize(erased);
     }
 }
