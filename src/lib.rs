@@ -30,7 +30,7 @@ pub trait EntityStructEq {
 
 pub trait EntityStructSerialize {
 
-    fn entity_serialize<'a> (&self, mut serializer: Box<Serializer + 'a>) -> Result<(), erased_serde::Error>;
+    fn entity_serialize<'a> (&self, serializer: Box<Serializer + 'a>) -> Result<(), erased_serde::Error>;
 
     fn to_json(&self) -> Result<std::string::String, serde_json::Error>;
 }
