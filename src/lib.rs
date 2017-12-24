@@ -114,6 +114,78 @@ impl<'a, E> Drop for Entity<'a, E> where E: 'a + ?Sized + EntityStruct {
     }
 }
 
+// Example of the compilation problem I am having
+//use std::sync::mpsc::Sender;
+//
+//pub trait MyTrait{}
+//
+//pub struct MyContainer<G> where G: 'static + MyTrait {
+//
+//    item: Option<Box<G>>,
+//    sender: Sender<Option<Box<MyTrait>>>,
+//
+//}
+//
+//impl <G> MyContainer<G> where G: MyTrait {
+//
+//    fn send (&mut self) {
+//        let item = self.item.take();
+//        self.sender.send(item);
+//    }
+//}
+//
+//fn main(){}
+
+//impl <G> MyContainer<G> where G: MyTrait + 'static {
+//
+//    fn send (&mut self) {
+//        let item = self.item.take();
+//        self.sender.send(item.map(|item| item as _));
+//    }
+//}
+
+
+//error[E0308]: mismatched types
+//--> src/main.rs:16:26
+//|
+//16 |         self.sender.send(item);
+//|                          ^^^^ expected trait MyTrait, found type parameter
+//|
+//= note: expected type `std::option::Option<std::boxed::Box<MyTrait + 'static>>`
+//found type `std::option::Option<std::boxed::Box<G>>`
+//= help: here are some functions which might fulfill your needs:
+//- .and(...)
+//- .and_then(...)
+//- .map(...)
+//- .map_or(...)
+//- .map_or_else(...)
+
+//Working Code
+//use std::sync::mpsc::Sender;
+//
+//pub trait MyTrait{}
+//
+//pub struct MyContainer<G> where G: 'static + MyTrait {
+//
+//    item: Option<Box<G>>,
+//    sender: Sender<Option<Box<MyTrait>>>,
+//
+//}
+//
+//impl <G> MyContainer<G> where G: MyTrait {
+//
+//    fn send (&mut self) {
+//        let item = self.item.take();
+//        self.sender.send(item.map(|item| item as _));
+//    }
+//}
+//
+//fn main(){}
+
+// POSSIBLE SOLUTION
+// Use a helper function EntityStruct.asTrait(&self) -> EntityStruct
+// Which can be provided a default implementation for all Sized
+
 impl<'a, E> Entity<'a, E> where E: ?Sized + EntityStruct {
 
     fn borrow_mut (&mut self) ->  RefMut<E> {
