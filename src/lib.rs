@@ -97,7 +97,7 @@ pub struct Entity<'a, E: ?Sized> where E: 'a + EntityStruct<'a> {
     item: Option<Box<RefCell<E>>>,
     id: Uuid,
     base_version: u32,
-    return_channel: Option<Sender<Entity<'a, E>>>,
+    return_channel: Option<Sender<Entity<'a, EntityStruct<'a>>>>,
     // TODO return channel needs to work on an EntityStruct, not parameter E so that we can have
     //      one receiver for all entity types
     // TODO id should be a reference instead of the struct, with the owner being the batch object.
@@ -252,7 +252,7 @@ mod tests {
     }
 
 
-    fn mock_test_entity<'a> (uuid: Uuid, sender: Sender<Entity<'a, TestStruct>>) -> Entity<'a, TestStruct> {
+    fn mock_test_entity<'a> (uuid: Uuid, sender: Sender<Entity<'a, EntityStruct>>) -> Entity<'a, TestStruct> {
         let s1 = TestStruct {
             a: 100,
             v: vec![200, 300],
@@ -269,7 +269,7 @@ mod tests {
     fn entity_test() {
         let uuid = Uuid::new_v4();
         let uuid_thread = uuid.clone();
-        let (tx, rx): (Sender<Entity<TestStruct>>, Receiver<Entity<TestStruct>>) = channel();
+        let (tx, rx): (Sender<Entity<EntityStruct>>, Receiver<Entity<EntityStruct>>) = channel();
         thread::spawn (move || {
             let mut my_entity = mock_test_entity(uuid_thread, tx);
             {
