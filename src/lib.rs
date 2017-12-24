@@ -43,7 +43,6 @@ impl<E: Eq> EntityStructEq for E {
     fn entity_eq (&self, other: &Self) -> bool{
         return self.eq(other)
     }
-
 }
 
 impl<S: serde::Serialize> EntityStructSerialize for S
@@ -62,7 +61,11 @@ impl<S: serde::Serialize> EntityStructSerialize for S
 
 }
 
-pub trait EntityStruct: Send + EntityStructClone + EntityStructEq + EntityStructSerialize {}
+pub trait EntityStruct<'a>: Send + Sync + EntityStructClone + EntityStructEq + EntityStructSerialize {
+
+    fn as_entity_struct (&'a self) -> &'a EntityStruct;
+
+}
 // This indirection ^ prevents an implementation conflict for descendants
 //                  |
 //error[E0119]: conflicting implementations of trait `EntityStruct` for type `MyStruct`:
@@ -79,8 +82,17 @@ pub trait EntityStruct: Send + EntityStructClone + EntityStructEq + EntityStruct
 //49 |   impl EntityStruct for MyStruct {}
 //|   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ conflicting implementation for `MyStruct`
 
+
+impl <'a, S: Sized + Send + Sync + Eq + Clone + serde::Serialize + EntityStructClone + EntityStructEq + EntityStructSerialize>EntityStruct<'a> for S {
+
+    fn as_entity_struct (&'a self) -> &'a EntityStruct {
+        return self as &'a EntityStruct;
+    }
+
+}
+
 #[derive(Debug)]
-pub struct Entity<'a, E: ?Sized> where E: 'a + EntityStruct {
+pub struct Entity<'a, E: ?Sized> where E: 'a + EntityStruct<'a> {
 
     item: Option<Box<RefCell<E>>>,
     id: Uuid,
@@ -92,7 +104,7 @@ pub struct Entity<'a, E: ?Sized> where E: 'a + EntityStruct {
 
 }
 
-impl<'a, E> Drop for Entity<'a, E> where E: 'a + ?Sized + EntityStruct {
+impl<'a, E> Drop for Entity<'a, E> where E: 'a + ?Sized + EntityStruct<'a> {
     fn drop(&mut self) {
         let sender = self.return_channel.take();
         match sender {
@@ -186,7 +198,7 @@ impl<'a, E> Drop for Entity<'a, E> where E: 'a + ?Sized + EntityStruct {
 // Use a helper function EntityStruct.asTrait(&self) -> EntityStruct
 // Which can be provided a default implementation for all Sized
 
-impl<'a, E> Entity<'a, E> where E: ?Sized + EntityStruct {
+impl<'a, E> Entity<'a, E> where E: ?Sized + EntityStruct<'a> {
 
     fn borrow_mut (&mut self) ->  RefMut<E> {
         match self.item {
@@ -239,7 +251,6 @@ mod tests {
         v: Vec<i32>,
     }
 
-    impl EntityStruct for TestStruct {   }
 
     fn mock_test_entity<'a> (uuid: Uuid, sender: Sender<Entity<'a, TestStruct>>) -> Entity<'a, TestStruct> {
         let s1 = TestStruct {
